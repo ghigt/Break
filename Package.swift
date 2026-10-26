@@ -9,6 +9,11 @@ let package = Package(
             name: "Break",
             path: "Sources/Break",
             swiftSettings: [.swiftLanguageMode(.v5)]
-        )
+        ),
+        .testTarget(
+            name: "BreakTests",
+            dependencies: ["Break"],
+            swiftSettings: [.swiftLanguageMode(.v5)]
+        ),
     ]
 )

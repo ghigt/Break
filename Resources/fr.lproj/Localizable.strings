@@ -3,11 +3,18 @@
 /* Menu bar */
 "Next break in %@" = "Prochaine pause dans %@";
 "Break in %@" = "Pause dans %@";
-"Timer paused (%@ left)" = "Minuteur en pause (%@ restantes)";
+"Disabled" = "Désactivé";
+"Disabled until %@" = "Désactivé jusqu’à %@";
+"Disabled until tomorrow" = "Désactivé jusqu’à demain";
 "On break" = "En pause";
 "Break now" = "Pause maintenant";
-"Pause timer" = "Mettre en pause le minuteur";
-"Resume timer" = "Reprendre le minuteur";
+"Disable" = "Désactiver";
+"For 30 minutes" = "Pendant 30 minutes";
+"For 1 hour" = "Pendant 1 heure";
+"For 2 hours" = "Pendant 2 heures";
+"Until tomorrow" = "Jusqu’à demain";
+"Until I turn it back on" = "Jusqu’à réactivation";
+"Turn Break back on" = "Réactiver Break";
 "Restart %lld min" = "Redémarrer les %lld min";
 "Settings…" = "Préférences…";
 "Quit Break" = "Quitter Break";

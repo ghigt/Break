@@ -6,6 +6,7 @@ A tiny macOS menu bar app that enforces a 5-minute break every 25 minutes.
 - **Warning** one minute before the break: a floating panel with a countdown, plus *Snooze* (3 min) and *Break now* buttons.
 - **Break**: every display is covered; the Dock, the menu bar, ⌘Tab, ⌘Q and Force Quit are disabled. Skipping the break requires **holding** the button for 3 seconds.
 - **Break over**: the screen stays locked until you click “Resume” (or press ↩︎), which starts a new 25-minute cycle.
+- **Disable** from the menu bar for 30 minutes, 1 hour, 2 hours, until tomorrow, or until you turn it back on.
 - If the session is locked or the Mac sleeps for longer than a break, the 25-minute cycle starts over.
 - Durations, sounds and launch at login are configurable in **Settings…**.
 - Available in English and French (follows the system language).
@@ -31,6 +32,12 @@ Requires Xcode (or the Command Line Tools):
 
 ```sh
 ./scripts/build.sh      # → build/Break.app and build/Break.zip
+```
+
+Run the tests:
+
+```sh
+swift test
 ```
 
 To run a full cycle quickly, make a “minute” shorter than 60 seconds:

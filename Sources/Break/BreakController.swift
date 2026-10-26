@@ -10,8 +10,8 @@ enum Phase: Equatable {
     case onBreak(startedAt: Date, endsAt: Date)
     /// The break is over; the screen stays locked until the user resumes.
     case finished
-    /// The work timer is suspended from the menu.
-    case paused(remaining: TimeInterval)
+    /// Breaks are turned off until `until`, or until turned back on if nil.
+    case disabled(until: Date?)
 }
 
 /// Owns the work/break cycle and drives the warning panel and the lock overlay.
@@ -20,7 +20,7 @@ enum Phase: Equatable {
 final class BreakController {
     static let shared = BreakController()
 
-    private(set) var phase: Phase = .paused(remaining: 0) {
+    private(set) var phase: Phase = .disabled(until: nil) {
         didSet { phaseDidChange(from: oldValue) }
     }
     /// Refreshed every second so views showing remaining time stay current.
@@ -75,18 +75,24 @@ final class BreakController {
         startWork()
     }
 
-    func togglePause() {
-        let now = Date()
-        switch phase {
-        case .working(let endsAt):
-            phase = .paused(remaining: endsAt.timeIntervalSince(now))
-        case .warning(let breakAt):
-            phase = .paused(remaining: breakAt.timeIntervalSince(now))
-        case .paused(let remaining):
-            phase = .working(endsAt: now.addingTimeInterval(remaining))
-        case .onBreak, .finished:
-            break
-        }
+    /// Turns breaks off for `duration`, or until turned back on if nil.
+    func disable(for duration: TimeInterval?) {
+        guard !isBlocking else { return }
+        phase = .disabled(until: duration.map { Date().addingTimeInterval($0) })
+    }
+
+    /// Turns breaks off until midnight.
+    func disableUntilTomorrow() {
+        let calendar = Calendar.current
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: Date()))
+        guard !isBlocking, let tomorrow else { return }
+        phase = .disabled(until: tomorrow)
+    }
+
+    /// Turns breaks back on with a fresh work cycle.
+    func enable() {
+        guard isDisabled else { return }
+        startWork()
     }
 
     // MARK: - State
@@ -98,8 +104,8 @@ final class BreakController {
         }
     }
 
-    var isPaused: Bool {
-        if case .paused = phase { return true }
+    var isDisabled: Bool {
+        if case .disabled = phase { return true }
         return false
     }
 
@@ -109,14 +115,14 @@ final class BreakController {
         case .working(let endsAt): max(0, endsAt.timeIntervalSince(date))
         case .warning(let breakAt): max(0, breakAt.timeIntervalSince(date))
         case .onBreak(_, let endsAt): max(0, endsAt.timeIntervalSince(date))
-        case .paused(let remaining): max(0, remaining)
+        case .disabled(let until): until.map { max(0, $0.timeIntervalSince(date)) }
         case .finished: nil
         }
     }
 
     // MARK: - Ticking
 
-    private func tick() {
+    func tick() {
         let current = Date()
         now = current
 
@@ -137,7 +143,9 @@ final class BreakController {
             if current >= breakAt { breakNow() }
         case .onBreak(_, let endsAt):
             if current >= endsAt { phase = .finished }
-        case .finished, .paused:
+        case .disabled(let until):
+            if let until, current >= until { startWork() }
+        case .finished:
             break
         }
     }
@@ -208,7 +216,7 @@ final class BreakController {
         switch phase {
         case .working, .warning:
             startWork()
-        case .onBreak, .finished, .paused:
+        case .onBreak, .finished, .disabled:
             break
         }
     }

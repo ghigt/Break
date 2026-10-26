@@ -21,7 +21,7 @@ enum CupIcon {
     /// - Parameters:
     ///   - progress: 0 (cycle start) to 1 (break time).
     ///   - cupFilled: draws the cup full of coffee.
-    ///   - dimmed: draws the icon faded, e.g. while the timer is paused.
+    ///   - dimmed: draws the icon faded, e.g. while breaks are disabled.
     static func image(progress: Double, cupFilled: Bool, dimmed: Bool = false) -> NSImage {
         let progress = CGFloat(min(max(progress, 0), 1))
         let image = NSImage(size: NSSize(width: size, height: size), flipped: true) { _ in

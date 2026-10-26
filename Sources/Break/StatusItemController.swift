@@ -11,7 +11,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
 
     private let statusLine = NSMenuItem(title: "", action: nil, keyEquivalent: "")
     private lazy var breakNowItem = item(String(localized: "Break now"), #selector(breakNow))
-    private lazy var pauseItem = item("", #selector(togglePause))
+    private lazy var disableItem = disableMenuItem()
+    private lazy var enableItem = item(String(localized: "Turn Break back on"), #selector(enable))
     private lazy var restartItem = item("", #selector(restart))
 
     private var lastIcon: IconState?
@@ -32,7 +33,8 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             statusLine,
             .separator(),
             breakNowItem,
-            pauseItem,
+            disableItem,
+            enableItem,
             restartItem,
             .separator(),
             item(String(localized: "Settings…"), #selector(openPreferences), key: ","),
@@ -48,6 +50,28 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
         item.target = self
         return item
+    }
+
+    private func disableMenuItem() -> NSMenuItem {
+        let minute = Preferences.secondsPerMinute
+        let choices: [(String, TimeInterval?)] = [
+            (String(localized: "For 30 minutes"), 30 * minute),
+            (String(localized: "For 1 hour"), 60 * minute),
+            (String(localized: "For 2 hours"), 120 * minute),
+        ]
+        let submenu = NSMenu()
+        for (title, duration) in choices {
+            let choice = item(title, #selector(disableFor(_:)))
+            choice.representedObject = duration
+            submenu.addItem(choice)
+        }
+        submenu.addItem(item(String(localized: "Until tomorrow"), #selector(disableUntilTomorrow)))
+        submenu.addItem(.separator())
+        submenu.addItem(item(String(localized: "Until I turn it back on"), #selector(disableFor(_:))))
+
+        let disable = NSMenuItem(title: String(localized: "Disable"), action: nil, keyEquivalent: "")
+        disable.submenu = submenu
+        return disable
     }
 
     // MARK: - Updates
@@ -80,9 +104,9 @@ final class StatusItemController: NSObject, NSMenuDelegate {
             let blink = Int(controller.now.timeIntervalSinceReferenceDate) % 2 == 0
             icon = IconState(progress: Self.progressSteps, cupFilled: blink, dimmed: false)
             status = String(localized: "Break in \(time)")
-        case .paused:
-            icon = IconState(progress: steps(progress), cupFilled: false, dimmed: true)
-            status = String(localized: "Timer paused (\(time) left)")
+        case .disabled(let until):
+            icon = IconState(progress: 0, cupFilled: false, dimmed: true)
+            status = Self.disabledStatus(until: until)
         case .onBreak, .finished:
             icon = IconState(progress: Self.progressSteps, cupFilled: true, dimmed: false)
             status = String(localized: "On break")
@@ -100,6 +124,15 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         if statusLine.title != status { statusLine.title = status }
     }
 
+    private static func disabledStatus(until: Date?) -> String {
+        guard let until else { return String(localized: "Disabled") }
+        if Calendar.current.startOfDay(for: until) == until, !Calendar.current.isDateInToday(until) {
+            return String(localized: "Disabled until tomorrow")
+        }
+        let time = until.formatted(date: .omitted, time: .shortened)
+        return String(localized: "Disabled until \(time)")
+    }
+
     /// Redraw only when the ring visibly changes.
     private static let progressSteps = 200
 
@@ -110,8 +143,9 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
         let blocking = controller.isBlocking
         breakNowItem.isEnabled = !blocking
-        pauseItem.isEnabled = !blocking
-        pauseItem.title = controller.isPaused ? String(localized: "Resume timer") : String(localized: "Pause timer")
+        disableItem.isEnabled = !blocking
+        disableItem.isHidden = controller.isDisabled
+        enableItem.isHidden = !controller.isDisabled
         restartItem.isEnabled = !blocking
         restartItem.title = String(localized: "Restart \(Preferences.workMinutes) min")
         update()
@@ -120,7 +154,9 @@ final class StatusItemController: NSObject, NSMenuDelegate {
     // MARK: - Actions
 
     @objc private func breakNow() { controller.breakNow() }
-    @objc private func togglePause() { controller.togglePause() }
+    @objc private func disableFor(_ sender: NSMenuItem) { controller.disable(for: sender.representedObject as? TimeInterval) }
+    @objc private func disableUntilTomorrow() { controller.disableUntilTomorrow() }
+    @objc private func enable() { controller.enable() }
     @objc private func restart() { controller.startWork() }
     @objc private func openPreferences() { PreferencesWindowController.shared.show() }
     @objc private func quit() { NSApp.terminate(nil) }
