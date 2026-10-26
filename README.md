@@ -2,6 +2,12 @@
 
 A tiny macOS menu bar app that enforces a 5-minute break every 25 minutes.
 
+![The break screen covers every display until the break is over](docs/images/break.jpg)
+
+| Menu bar icon: the ring fills up as the break approaches | One-minute warning, top-right of the screen |
+| :---: | :---: |
+| <img src="docs/images/menu-bar-icon.png" width="296" alt="Menu bar icon at successive stages of the 25-minute cycle, on light and dark menu bars"> | <img src="docs/images/warning.png" width="376" alt="Warning panel with a countdown and Snooze and Break now buttons"> |
+
 - **Menu bar icon**: a cup inside a ring of five segments that fill up as the break approaches.
 - **Warning** one minute before the break: a floating panel with a countdown, plus *Snooze* (3 min) and *Break now* buttons.
 - **Break**: every display is covered; the Dock, the menu bar, ⌘Tab, ⌘Q and Force Quit are disabled. Skipping the break requires **holding** the button for 3 seconds.
