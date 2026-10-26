@@ -1,0 +1,44 @@
+/* French translation. Keys are the English strings used in the code. */
+
+/* Menu bar */
+"Next break in %@" = "Prochaine pause dans %@";
+"Break in %@" = "Pause dans %@";
+"Timer paused (%@ left)" = "Minuteur en pause (%@ restantes)";
+"On break" = "En pause";
+"Break now" = "Pause maintenant";
+"Pause timer" = "Mettre en pause le minuteur";
+"Resume timer" = "Reprendre le minuteur";
+"Restart %lld min" = "Redémarrer les %lld min";
+"Settings…" = "Préférences…";
+"Quit Break" = "Quitter Break";
+
+/* Warning panel */
+"Break starting soon" = "La pause va bientôt commencer";
+"Finish your sentence, save your work." = "Termine ta phrase, enregistre ton travail.";
+"Snooze %lld min" = "Snooze %lld min";
+
+/* Break screen */
+"BREAK" = "PAUSE";
+"Hold to skip the break" = "Maintenir pour passer la pause";
+"Hold for %lld seconds" = "Maintenir %lld secondes";
+"Stand up, drink some water, look into the distance." = "Lève-toi, bois de l’eau, regarde au loin.";
+"Stretch your shoulders and back." = "Étire tes épaules et ton dos.";
+"Close your eyes and breathe deeply." = "Ferme les yeux et respire profondément.";
+"Walk around, open a window." = "Marche un peu, ouvre une fenêtre.";
+"Look at something 20 feet away for 20 seconds." = "Regarde un point à 6 mètres pendant 20 secondes.";
+"Break over" = "Pause terminée";
+"Ready for %lld minutes of focus?" = "Prêt pour %lld minutes de concentration ?";
+"Resume  ↩︎" = "Reprendre  ↩︎";
+
+/* Settings */
+"Break Settings" = "Préférences de Break";
+"Durations" = "Durées";
+"Work" = "Travail";
+"Break" = "Pause";
+"Warning" = "Préavis";
+"Snooze" = "Snooze";
+"%lld min" = "%lld min";
+"New durations apply from the next cycle." = "Les nouvelles durées s’appliquent au prochain cycle.";
+"Options" = "Options";
+"Play sounds" = "Jouer des sons";
+"Open Break at login" = "Ouvrir Break à la connexion";
