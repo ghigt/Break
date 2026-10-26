@@ -1,3 +1,4 @@
+import Observation
 import SwiftUI
 
 /// Circular progress indicator; `progress` goes from 1 (full) to 0 (empty).
@@ -19,14 +20,21 @@ struct ProgressRing<Label: View>: View {
     }
 }
 
+/// Progress of a press-and-hold. Kept outside the view instead of in `@State`:
+/// SwiftUI's macros are missing from some Command Line Tools installs.
+@MainActor
+@Observable
+final class HoldProgress {
+    fileprivate(set) var progress: CGFloat = 0
+    @ObservationIgnored fileprivate var task: Task<Void, Never>?
+}
+
 /// A button that fires only after being held down for `duration` seconds.
 struct HoldToConfirmButton: View {
     var title: String
     var duration: TimeInterval = 3
+    let hold: HoldProgress
     var action: () -> Void
-
-    @State private var progress: CGFloat = 0
-    @State private var holdTask: Task<Void, Never>?
 
     var body: some View {
         Text(title)
@@ -39,7 +47,7 @@ struct HoldToConfirmButton: View {
                     ZStack(alignment: .leading) {
                         Capsule().fill(Color.white.opacity(0.08))
                         Capsule().fill(Color.white.opacity(0.22))
-                            .frame(width: geo.size.width * progress)
+                            .frame(width: geo.size.width * hold.progress)
                     }
                 }
             }
@@ -55,20 +63,20 @@ struct HoldToConfirmButton: View {
     }
 
     private func beginHold() {
-        guard holdTask == nil else { return }
-        withAnimation(.linear(duration: duration)) { progress = 1 }
-        holdTask = Task { @MainActor in
+        guard hold.task == nil else { return }
+        withAnimation(.linear(duration: duration)) { hold.progress = 1 }
+        hold.task = Task { @MainActor [hold, duration, action] in
             try? await Task.sleep(for: .seconds(duration))
             guard !Task.isCancelled else { return }
-            holdTask = nil
-            progress = 0
+            hold.task = nil
+            hold.progress = 0
             action()
         }
     }
 
     private func cancelHold() {
-        holdTask?.cancel()
-        holdTask = nil
-        withAnimation(.easeOut(duration: 0.25)) { progress = 0 }
+        hold.task?.cancel()
+        hold.task = nil
+        withAnimation(.easeOut(duration: 0.25)) { hold.progress = 0 }
     }
 }

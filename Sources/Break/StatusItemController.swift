@@ -80,7 +80,7 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         withObservationTracking {
             _ = controller.phase
             _ = controller.now
-        } onChange: {
+        } onChange: { [weak self] in
             Task { @MainActor [weak self] in
                 self?.update()
                 self?.observe()

@@ -1,4 +1,5 @@
 import AppKit
+import Observation
 import ServiceManagement
 import SwiftUI
 
@@ -10,7 +11,7 @@ final class PreferencesWindowController {
 
     func show() {
         if window == nil {
-            let window = NSWindow(contentViewController: NSHostingController(rootView: PreferencesView()))
+            let window = NSWindow(contentViewController: NSHostingController(rootView: PreferencesView(loginItem: LoginItem())))
             window.title = String(localized: "Break Settings")
             window.styleMask = [.titled, .closable]
             window.isReleasedWhenClosed = false
@@ -22,15 +23,37 @@ final class PreferencesWindowController {
     }
 }
 
+/// Launch-at-login state. Kept outside the view instead of in `@State`:
+/// SwiftUI's macros are missing from some Command Line Tools installs.
+@MainActor
+@Observable
+final class LoginItem {
+    private(set) var isEnabled = SMAppService.mainApp.status == .enabled
+    private(set) var error: String?
+
+    func setEnabled(_ enabled: Bool) {
+        do {
+            if enabled {
+                try SMAppService.mainApp.register()
+            } else {
+                try SMAppService.mainApp.unregister()
+            }
+            error = nil
+        } catch {
+            self.error = error.localizedDescription
+        }
+        isEnabled = SMAppService.mainApp.status == .enabled
+    }
+}
+
 struct PreferencesView: View {
+    let loginItem: LoginItem
+
     @AppStorage(Preferences.Key.workMinutes) private var workMinutes = Preferences.Default.workMinutes
     @AppStorage(Preferences.Key.breakMinutes) private var breakMinutes = Preferences.Default.breakMinutes
     @AppStorage(Preferences.Key.warningMinutes) private var warningMinutes = Preferences.Default.warningMinutes
     @AppStorage(Preferences.Key.snoozeMinutes) private var snoozeMinutes = Preferences.Default.snoozeMinutes
     @AppStorage(Preferences.Key.soundsEnabled) private var soundsEnabled = Preferences.Default.soundsEnabled
-
-    @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
-    @State private var loginError: String?
 
     var body: some View {
         Form {
@@ -48,9 +71,11 @@ struct PreferencesView: View {
 
             Section("Options") {
                 Toggle("Play sounds", isOn: $soundsEnabled)
-                Toggle("Open Break at login", isOn: $launchAtLogin)
-                    .onChange(of: launchAtLogin) { _, enabled in setLaunchAtLogin(enabled) }
-                if let loginError {
+                Toggle("Open Break at login", isOn: Binding(
+                    get: { loginItem.isEnabled },
+                    set: { loginItem.setEnabled($0) }
+                ))
+                if let loginError = loginItem.error {
                     Text(loginError).font(.caption).foregroundStyle(.red)
                 }
             }
@@ -63,20 +88,6 @@ struct PreferencesView: View {
     private func stepper(_ title: LocalizedStringKey, value: Binding<Int>, range: ClosedRange<Int>, step: Int = 1) -> some View {
         Stepper(value: value, in: range, step: step) {
             LabeledContent(title, value: String(localized: "\(value.wrappedValue) min"))
-        }
-    }
-
-    private func setLaunchAtLogin(_ enabled: Bool) {
-        do {
-            if enabled {
-                try SMAppService.mainApp.register()
-            } else {
-                try SMAppService.mainApp.unregister()
-            }
-            loginError = nil
-        } catch {
-            loginError = error.localizedDescription
-            launchAtLogin = SMAppService.mainApp.status == .enabled
         }
     }
 }

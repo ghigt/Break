@@ -1,30 +1,34 @@
 #!/bin/bash
-# Builds Break.app and a distributable zip.
-# Universal (Apple Silicon + Intel) with Xcode; current architecture only with
-# the Command Line Tools, which cannot build for several architectures.
+# Builds a universal (Apple Silicon + Intel) Break.app and a distributable zip.
 #   build/Break.app
 #   build/Break.zip  (Break.app + install.sh)
+#
+# Calls swiftc directly rather than `swift build`: it works with Xcode as well
+# as with Command Line Tools installs whose Package.swift support is broken.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-if xcodebuild -version >/dev/null 2>&1; then
-  ARCHS=(--arch arm64 --arch x86_64)
-  KIND="universal"
-else
-  ARCHS=()
-  KIND="$(uname -m) only, Xcode not found"
-fi
 APP=build/Break.app
 DIST=build/dist/Break
+OBJ=build/obj
 
 if [ ! -f Resources/AppIcon.icns ]; then
   echo "→ Generating icon"
   swift scripts/make-icon.swift Resources/AppIcon.icns
 fi
 
-echo "→ Building (release, $KIND)"
-swift build -c release ${ARCHS[@]+"${ARCHS[@]}"}
-BIN="$(swift build -c release ${ARCHS[@]+"${ARCHS[@]}"} --show-bin-path)/Break"
+echo "→ Compiling (release, universal)"
+rm -rf "$OBJ"
+mkdir -p "$OBJ"
+for arch in arm64 x86_64; do
+  xcrun swiftc -O -parse-as-library \
+    -target "$arch-apple-macos14.0" \
+    -module-name Break \
+    Sources/Break/*.swift \
+    -o "$OBJ/Break-$arch"
+done
+lipo -create "$OBJ/Break-arm64" "$OBJ/Break-x86_64" -output "$OBJ/Break"
+BIN="$OBJ/Break"
 
 echo "→ Assembling $APP"
 rm -rf "$APP"

@@ -8,6 +8,16 @@ final class BreakOverlayController {
     private var windows: [NSWindow] = []
     private var observers: [(NotificationCenter, NSObjectProtocol)] = []
     private var guardTimer: Timer?
+    private var tip = ""
+    private let hold = HoldProgress()
+
+    private static let tips = [
+        String(localized: "Stand up, drink some water, look into the distance."),
+        String(localized: "Stretch your shoulders and back."),
+        String(localized: "Close your eyes and breathe deeply."),
+        String(localized: "Walk around, open a window."),
+        String(localized: "Look at something 20 feet away for 20 seconds."),
+    ]
 
     private static let kioskOptions: NSApplication.PresentationOptions = [
         .hideDock,
@@ -21,6 +31,7 @@ final class BreakOverlayController {
 
     func show() {
         guard windows.isEmpty else { return }
+        tip = Self.tips.randomElement() ?? ""
         buildWindows()
         enforce()
         observe()
@@ -54,7 +65,7 @@ final class BreakOverlayController {
                 defer: false
             )
             window.setFrame(screen.frame, display: false)
-            window.contentView = NSHostingView(rootView: OverlayView())
+            window.contentView = NSHostingView(rootView: OverlayView(tip: tip, hold: hold))
             window.isOpaque = false
             window.backgroundColor = .clear
             window.level = .screenSaver
@@ -108,6 +119,8 @@ private final class OverlayWindow: NSWindow {
 }
 
 struct OverlayView: View {
+    var tip: String
+    let hold: HoldProgress
     private let controller = BreakController.shared
 
     var body: some View {
@@ -117,7 +130,7 @@ struct OverlayView: View {
 
             switch controller.phase {
             case .onBreak(let startedAt, let endsAt):
-                BreakInProgressView(startedAt: startedAt, endsAt: endsAt)
+                BreakInProgressView(startedAt: startedAt, endsAt: endsAt, tip: tip, hold: hold)
             default:
                 BreakFinishedView()
             }
@@ -130,16 +143,8 @@ struct OverlayView: View {
 private struct BreakInProgressView: View {
     var startedAt: Date
     var endsAt: Date
-
-    @State private var tip = Self.tips.randomElement()!
-
-    private static let tips = [
-        String(localized: "Stand up, drink some water, look into the distance."),
-        String(localized: "Stretch your shoulders and back."),
-        String(localized: "Close your eyes and breathe deeply."),
-        String(localized: "Walk around, open a window."),
-        String(localized: "Look at something 20 feet away for 20 seconds."),
-    ]
+    var tip: String
+    let hold: HoldProgress
 
     var body: some View {
         VStack(spacing: 0) {
@@ -165,7 +170,7 @@ private struct BreakInProgressView: View {
                 .foregroundStyle(.white.opacity(0.75))
                 .padding(.bottom, 40)
 
-            HoldToConfirmButton(title: String(localized: "Hold to skip the break")) {
+            HoldToConfirmButton(title: String(localized: "Hold to skip the break"), hold: hold) {
                 BreakController.shared.skipBreak()
             }
         }

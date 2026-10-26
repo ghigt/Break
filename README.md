@@ -35,7 +35,7 @@ Requires Xcode or the Command Line Tools (`xcode-select --install`):
 ./scripts/install.sh    # installs build/Break.app into ~/Applications
 ```
 
-With Xcode the app is universal (Apple Silicon + Intel); with only the Command Line Tools it is built for the current Mac’s architecture.
+The app is always universal (Apple Silicon + Intel). The build script calls `swiftc` directly and the code avoids SwiftUI macros such as `@State`, so it also builds with Command Line Tools installs that cannot read `Package.swift` or lack SwiftUI’s macro plugins. `Package.swift` is still used for `swift test` and for opening the project in Xcode.
 
 Run the tests:
 
