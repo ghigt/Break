@@ -1,11 +1,19 @@
 #!/bin/bash
-# Builds a universal (Apple Silicon + Intel) Break.app and a distributable zip.
+# Builds Break.app and a distributable zip.
+# Universal (Apple Silicon + Intel) with Xcode; current architecture only with
+# the Command Line Tools, which cannot build for several architectures.
 #   build/Break.app
 #   build/Break.zip  (Break.app + install.sh)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-ARCHS=(--arch arm64 --arch x86_64)
+if xcodebuild -version >/dev/null 2>&1; then
+  ARCHS=(--arch arm64 --arch x86_64)
+  KIND="universal"
+else
+  ARCHS=()
+  KIND="$(uname -m) only, Xcode not found"
+fi
 APP=build/Break.app
 DIST=build/dist/Break
 
@@ -14,9 +22,9 @@ if [ ! -f Resources/AppIcon.icns ]; then
   swift scripts/make-icon.swift Resources/AppIcon.icns
 fi
 
-echo "→ Building (release, universal)"
-swift build -c release "${ARCHS[@]}"
-BIN="$(swift build -c release "${ARCHS[@]}" --show-bin-path)/Break"
+echo "→ Building (release, $KIND)"
+swift build -c release ${ARCHS[@]+"${ARCHS[@]}"}
+BIN="$(swift build -c release ${ARCHS[@]+"${ARCHS[@]}"} --show-bin-path)/Break"
 
 echo "→ Assembling $APP"
 rm -rf "$APP"

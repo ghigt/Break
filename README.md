@@ -28,11 +28,14 @@ Uninstall: quit Break from the menu bar, then delete `~/Applications/Break.app`.
 
 ## Build
 
-Requires Xcode (or the Command Line Tools):
+Requires Xcode or the Command Line Tools (`xcode-select --install`):
 
 ```sh
 ./scripts/build.sh      # → build/Break.app and build/Break.zip
+./scripts/install.sh    # installs build/Break.app into ~/Applications
 ```
+
+With Xcode the app is universal (Apple Silicon + Intel); with only the Command Line Tools it is built for the current Mac’s architecture.
 
 Run the tests:
 

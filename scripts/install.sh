@@ -1,13 +1,18 @@
 #!/bin/bash
 # Installs Break.app for the current user only: no admin rights needed.
-# Usage: bash install.sh
+# Usage: bash install.sh  (from the unzipped Break folder or the repository)
 set -euo pipefail
 
-SRC="$(cd "$(dirname "$0")" && pwd)/Break.app"
+HERE="$(cd "$(dirname "$0")" && pwd)"
 DEST="$HOME/Applications"
 
-if [ ! -d "$SRC" ]; then
-  echo "Break.app not found next to this script." >&2
+# Next to this script in the distributed zip, or in build/ when run from the repo.
+if [ -d "$HERE/Break.app" ]; then
+  SRC="$HERE/Break.app"
+elif [ -d "$HERE/../build/Break.app" ]; then
+  SRC="$HERE/../build/Break.app"
+else
+  echo "Break.app not found. From the repository, run ./scripts/build.sh first." >&2
   exit 1
 fi
 
