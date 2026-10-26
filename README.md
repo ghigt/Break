@@ -19,19 +19,6 @@ A tiny macOS menu bar app that enforces a 5-minute break every 25 minutes.
 
 Requirements: macOS 14 (Sonoma) or later, Apple Silicon or Intel.
 
-## Install (no admin rights needed)
-
-1. Copy `Break.zip` to the Mac and unzip it.
-2. In Terminal:
-
-   ```sh
-   bash ~/Downloads/Break/install.sh
-   ```
-
-The script copies `Break.app` into `~/Applications` (the user’s own Applications folder), lifts the Gatekeeper quarantine (the app is not notarized) and launches it. Nothing else is installed.
-
-Uninstall: quit Break from the menu bar, then delete `~/Applications/Break.app`.
-
 ## Build
 
 Requires Xcode or the Command Line Tools (`xcode-select --install`):
