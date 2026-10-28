@@ -29,10 +29,19 @@ final class HoldProgress {
     @ObservationIgnored fileprivate var task: Task<Void, Never>?
 }
 
+/// Text describing the hovered control. System tooltips open below the break
+/// screen's window level, so they would never show there.
+@MainActor
+@Observable
+final class HoverHint {
+    var text: String?
+}
+
 /// A button that fires only after being held down for `duration` seconds.
 struct HoldToConfirmButton: View {
     var title: String
-    var duration: TimeInterval = 3
+    static let defaultDuration: TimeInterval = 2
+    var duration: TimeInterval = defaultDuration
     let hold: HoldProgress
     var action: () -> Void
 
@@ -59,7 +68,6 @@ struct HoldToConfirmButton: View {
                     .onChanged { _ in beginHold() }
                     .onEnded { _ in cancelHold() }
             )
-            .help("Hold for \(Int(duration)) seconds")
     }
 
     private func beginHold() {

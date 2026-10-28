@@ -7,6 +7,7 @@
 "Disabled until %@" = "Désactivé jusqu’à %@";
 "Disabled until tomorrow" = "Désactivé jusqu’à demain";
 "On break" = "En pause";
+"Break resumes in %@" = "Reprise de la pause dans %@";
 "Break now" = "Pause maintenant";
 "Disable" = "Désactiver";
 "For 30 minutes" = "Pendant 30 minutes";
@@ -26,7 +27,9 @@
 
 /* Break screen */
 "BREAK" = "PAUSE";
-"Hold to skip the break" = "Maintenir pour passer la pause";
+"Quick unlock" = "Déblocage rapide";
+"Pauses the break for %lld seconds" = "Suspend la pause %lld secondes";
+"Skip the break" = "Passer la pause";
 "Hold for %lld seconds" = "Maintenir %lld secondes";
 "Stand up, drink some water, look into the distance." = "Lève-toi, bois de l’eau, regarde au loin.";
 "Stretch your shoulders and back." = "Étire tes épaules et ton dos.";
@@ -36,6 +39,11 @@
 "Break over" = "Pause terminée";
 "Ready for %lld minutes of focus?" = "Prêt pour %lld minutes de concentration ?";
 "Resume  ↩︎" = "Reprendre  ↩︎";
+
+/* Peek panel */
+"Break paused" = "Pause suspendue";
+"The break screen comes back in a moment." = "L’écran de pause revient dans un instant.";
+"Back to break" = "Retour à la pause";
 
 /* Settings */
 "Break Settings" = "Préférences de Break";

@@ -49,6 +49,10 @@ enum Preferences {
     static var snoozeMinutes: Int { defaults.integer(forKey: Key.snoozeMinutes) }
     static var soundsEnabled: Bool { defaults.bool(forKey: Key.soundsEnabled) }
 
+    /// How long the break screen can be lifted, e.g. to pause a video.
+    static let peekSeconds = 20
+    static var peekDuration: TimeInterval { TimeInterval(peekSeconds) }
+
     private static func minutes(_ key: String) -> TimeInterval {
         TimeInterval(max(1, defaults.integer(forKey: key))) * secondsPerMinute
     }

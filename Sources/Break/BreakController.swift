@@ -8,6 +8,9 @@ enum Phase: Equatable {
     case warning(breakAt: Date)
     /// The screen is locked.
     case onBreak(startedAt: Date, endsAt: Date)
+    /// The break is paused and the screen unlocked until `until`, e.g. to pause
+    /// a video. `startedAt` and `endsAt` already include the pause.
+    case peeking(startedAt: Date, endsAt: Date, until: Date)
     /// The break is over; the screen stays locked until the user resumes.
     case finished
     /// Breaks are turned off until `until`, or until turned back on if nil.
@@ -27,7 +30,8 @@ final class BreakController {
     private(set) var now = Date()
 
     @ObservationIgnored private var timer: Timer?
-    @ObservationIgnored private let warningPanel = WarningPanelController()
+    @ObservationIgnored private let warningPanel = FloatingPanelController { WarningView() }
+    @ObservationIgnored private let peekPanel = FloatingPanelController { PeekView() }
     @ObservationIgnored private let overlay = BreakOverlayController()
 
     // Time spent away (screen locked or Mac asleep) counts as a break.
@@ -70,6 +74,24 @@ final class BreakController {
         startWork()
     }
 
+    /// Unlocks the screen for a few seconds; the break is paused meanwhile.
+    func peek() {
+        guard case .onBreak(let startedAt, let endsAt) = phase else { return }
+        let pause = Preferences.peekDuration
+        phase = .peeking(
+            startedAt: startedAt.addingTimeInterval(pause),
+            endsAt: endsAt.addingTimeInterval(pause),
+            until: Date().addingTimeInterval(pause)
+        )
+    }
+
+    /// Locks the screen again; the unused part of the pause is given back.
+    func endPeek() {
+        guard case .peeking(let startedAt, let endsAt, let until) = phase else { return }
+        let unused = max(0, until.timeIntervalSinceNow)
+        phase = .onBreak(startedAt: startedAt.addingTimeInterval(-unused), endsAt: endsAt.addingTimeInterval(-unused))
+    }
+
     func resume() {
         guard case .finished = phase else { return }
         startWork()
@@ -99,7 +121,7 @@ final class BreakController {
 
     var isBlocking: Bool {
         switch phase {
-        case .onBreak, .finished: true
+        case .onBreak, .peeking, .finished: true
         default: false
         }
     }
@@ -115,6 +137,7 @@ final class BreakController {
         case .working(let endsAt): max(0, endsAt.timeIntervalSince(date))
         case .warning(let breakAt): max(0, breakAt.timeIntervalSince(date))
         case .onBreak(_, let endsAt): max(0, endsAt.timeIntervalSince(date))
+        case .peeking(_, _, let until): max(0, until.timeIntervalSince(date))
         case .disabled(let until): until.map { max(0, $0.timeIntervalSince(date)) }
         case .finished: nil
         }
@@ -143,6 +166,8 @@ final class BreakController {
             if current >= breakAt { breakNow() }
         case .onBreak(_, let endsAt):
             if current >= endsAt { phase = .finished }
+        case .peeking(_, _, let until):
+            if current >= until { endPeek() }
         case .disabled(let until):
             if let until, current >= until { startWork() }
         case .finished:
@@ -165,13 +190,20 @@ final class BreakController {
             warningPanel.hide()
         }
 
+        if case .peeking = phase { peekPanel.show() } else { peekPanel.hide() }
+
         switch phase {
         case .onBreak:
-            if case .onBreak = old {} else { Sounds.breakStarted() }
-            overlay.show()
+            switch old {
+            case .onBreak, .peeking:
+                overlay.show(newBreak: false)
+            default:
+                Sounds.breakStarted()
+                overlay.show(newBreak: true)
+            }
         case .finished:
             if old != .finished { Sounds.breakFinished() }
-            overlay.show()
+            overlay.show(newBreak: false)
         default:
             overlay.hide()
         }
@@ -216,7 +248,7 @@ final class BreakController {
         switch phase {
         case .working, .warning:
             startWork()
-        case .onBreak, .finished, .disabled:
+        case .onBreak, .peeking, .finished, .disabled:
             break
         }
     }

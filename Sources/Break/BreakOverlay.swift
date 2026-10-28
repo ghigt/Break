@@ -9,7 +9,10 @@ final class BreakOverlayController {
     private var observers: [(NotificationCenter, NSObjectProtocol)] = []
     private var guardTimer: Timer?
     private var tip = ""
+    /// The app in front before the overlay appeared, brought back when it goes away.
+    private var previousApp: NSRunningApplication?
     private let hold = HoldProgress()
+    private let hint = HoverHint()
 
     private static let tips = [
         String(localized: "Stand up, drink some water, look into the distance."),
@@ -29,9 +32,12 @@ final class BreakOverlayController {
         .disableAppleMenu,
     ]
 
-    func show() {
+    /// `newBreak` picks a new tip; otherwise the previous one is kept (after a peek).
+    func show(newBreak: Bool) {
         guard windows.isEmpty else { return }
-        tip = Self.tips.randomElement() ?? ""
+        if newBreak || tip.isEmpty { tip = Self.tips.randomElement() ?? "" }
+        let frontmost = NSWorkspace.shared.frontmostApplication
+        previousApp = frontmost == NSRunningApplication.current ? nil : frontmost
         buildWindows()
         enforce()
         observe()
@@ -53,6 +59,8 @@ final class BreakOverlayController {
         windows.forEach { $0.orderOut(nil) }
         windows = []
         NSApp.presentationOptions = []
+        previousApp?.activate()
+        previousApp = nil
     }
 
     private func buildWindows() {
@@ -65,7 +73,7 @@ final class BreakOverlayController {
                 defer: false
             )
             window.setFrame(screen.frame, display: false)
-            window.contentView = NSHostingView(rootView: OverlayView(tip: tip, hold: hold))
+            window.contentView = NSHostingView(rootView: OverlayView(tip: tip, hold: hold, hint: hint))
             window.isOpaque = false
             window.backgroundColor = .clear
             window.level = .screenSaver
@@ -121,6 +129,7 @@ private final class OverlayWindow: NSWindow {
 struct OverlayView: View {
     var tip: String
     let hold: HoldProgress
+    let hint: HoverHint
     private let controller = BreakController.shared
 
     var body: some View {
@@ -130,7 +139,7 @@ struct OverlayView: View {
 
             switch controller.phase {
             case .onBreak(let startedAt, let endsAt):
-                BreakInProgressView(startedAt: startedAt, endsAt: endsAt, tip: tip, hold: hold)
+                BreakInProgressView(startedAt: startedAt, endsAt: endsAt, tip: tip, hold: hold, hint: hint)
             default:
                 BreakFinishedView()
             }
@@ -145,6 +154,7 @@ private struct BreakInProgressView: View {
     var endsAt: Date
     var tip: String
     let hold: HoldProgress
+    let hint: HoverHint
 
     var body: some View {
         VStack(spacing: 0) {
@@ -170,11 +180,46 @@ private struct BreakInProgressView: View {
                 .foregroundStyle(.white.opacity(0.75))
                 .padding(.bottom, 40)
 
-            HoldToConfirmButton(title: String(localized: "Hold to skip the break"), hold: hold) {
-                BreakController.shared.skipBreak()
+            HStack(spacing: 12) {
+                Button {
+                    BreakController.shared.peek()
+                } label: {
+                    Label("Quick unlock", systemImage: "lock.open.fill")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color(red: 0.45, green: 0.92, blue: 0.68))
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 9)
+                        .background(Capsule().fill(Color.green.opacity(0.16)))
+                        .overlay(Capsule().stroke(Color.green.opacity(0.45), lineWidth: 1))
+                        .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .onHover { hovering in
+                    showHint(hovering, String(localized: "Pauses the break for \(Preferences.peekSeconds) seconds"))
+                }
+
+                HoldToConfirmButton(title: String(localized: "Skip the break"), hold: hold) {
+                    BreakController.shared.skipBreak()
+                }
+                .onHover { hovering in
+                    showHint(hovering, String(localized: "Hold for \(Int(HoldToConfirmButton.defaultDuration)) seconds"))
+                }
             }
+
+            Text(hint.text ?? " ")
+                .font(.system(size: 12))
+                .foregroundStyle(.white.opacity(0.5))
+                .padding(.top, 12)
         }
         .foregroundStyle(.white)
+    }
+
+    private func showHint(_ hovering: Bool, _ text: String) {
+        if hovering {
+            hint.text = text
+        } else if hint.text == text {
+            hint.text = nil
+        }
     }
 }
 

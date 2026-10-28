@@ -107,6 +107,9 @@ final class StatusItemController: NSObject, NSMenuDelegate {
         case .disabled(let until):
             icon = IconState(progress: 0, cupFilled: false, dimmed: true)
             status = Self.disabledStatus(until: until)
+        case .peeking:
+            icon = IconState(progress: Self.progressSteps, cupFilled: true, dimmed: false)
+            status = String(localized: "Break resumes in \(time)")
         case .onBreak, .finished:
             icon = IconState(progress: Self.progressSteps, cupFilled: true, dimmed: false)
             status = String(localized: "On break")

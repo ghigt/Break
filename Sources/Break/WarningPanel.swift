@@ -1,16 +1,21 @@
 import AppKit
 import SwiftUI
 
-/// Floating panel shown in the top-right corner during the pre-break warning.
-/// It never activates the app, so typing elsewhere is not interrupted.
+/// Floating panel shown in the top-right corner, during the pre-break warning
+/// or while peeking. It never activates the app, so typing elsewhere is not interrupted.
 @MainActor
-final class WarningPanelController {
+final class FloatingPanelController<Content: View> {
     private var panel: NSPanel?
+    private let content: () -> Content
+
+    init(_ content: @escaping () -> Content) {
+        self.content = content
+    }
 
     func show() {
         guard panel == nil else { return }
 
-        let hosting = NSHostingView(rootView: WarningView())
+        let hosting = NSHostingView(rootView: content())
         let size = hosting.fittingSize
         let panel = WarningPanel(
             contentRect: NSRect(origin: .zero, size: size),
@@ -76,11 +81,49 @@ struct WarningView: View {
                     .padding(.top, 6)
                 }
             }
-            .padding(14)
+            .panelStyle()
+        }
+        .environment(\.colorScheme, .dark)
+    }
+}
+
+/// Shown while the break screen is lifted for a few seconds.
+struct PeekView: View {
+    private let controller = BreakController.shared
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30)) { context in
+            let remaining = controller.remaining(at: context.date) ?? 0
+            HStack(spacing: 14) {
+                ProgressRing(progress: remaining / Preferences.peekDuration, color: .green, lineWidth: 5) {
+                    Text(remaining.clockString)
+                        .font(.system(size: 14, weight: .semibold).monospacedDigit())
+                }
+                .frame(width: 58, height: 58)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Break paused")
+                        .font(.system(size: 13, weight: .semibold))
+                    Text("The break screen comes back in a moment.")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                    Button("Back to break") { controller.endPeek() }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                        .padding(.top, 6)
+                }
+            }
+            .panelStyle()
+        }
+        .environment(\.colorScheme, .dark)
+    }
+}
+
+private extension View {
+    func panelStyle() -> some View {
+        padding(14)
             .frame(width: 350, alignment: .leading)
             .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(.white.opacity(0.12)))
-        }
-        .environment(\.colorScheme, .dark)
     }
 }
