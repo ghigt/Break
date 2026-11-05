@@ -1,3 +1,4 @@
+import AppKit
 import Observation
 import SwiftUI
 
@@ -35,34 +36,64 @@ final class HoldProgress {
 @Observable
 final class HoverHint {
     var text: String?
+    /// Identifier of the hovered control, so buttons can draw their hover state
+    /// without `@State`.
+    var hovered: String?
+
+    func isHovered(_ id: String) -> Bool { hovered == id }
+
+    /// Tracks the pointer over control `id`, showing `text` below the buttons.
+    func update(_ id: String, hovering: Bool, text: String? = nil) {
+        if hovering {
+            hovered = id
+            self.text = text
+            NSCursor.pointingHand.set()
+        } else if hovered == id {
+            hovered = nil
+            self.text = nil
+            NSCursor.arrow.set()
+        }
+    }
+}
+
+/// Shrinks the label slightly while pressed.
+struct PressableButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.96 : 1)
+            .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
+    }
 }
 
 /// A button that fires only after being held down for `duration` seconds.
 struct HoldToConfirmButton: View {
     var title: String
-    static let defaultDuration: TimeInterval = 2
+    static let defaultDuration: TimeInterval = 1
     var duration: TimeInterval = defaultDuration
     let hold: HoldProgress
+    var hovered = false
     var action: () -> Void
 
     var body: some View {
         Text(title)
             .font(.system(size: 13, weight: .medium))
-            .foregroundStyle(.white.opacity(0.75))
+            .foregroundStyle(.white.opacity(hovered ? 0.95 : 0.75))
             .padding(.horizontal, 18)
             .padding(.vertical, 9)
             .background {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
-                        Capsule().fill(Color.white.opacity(0.08))
+                        Capsule().fill(Color.white.opacity(hovered ? 0.14 : 0.08))
                         Capsule().fill(Color.white.opacity(0.22))
                             .frame(width: geo.size.width * hold.progress)
                     }
                 }
             }
-            .overlay(Capsule().stroke(Color.white.opacity(0.2), lineWidth: 1))
+            .overlay(Capsule().stroke(Color.white.opacity(hovered ? 0.4 : 0.2), lineWidth: 1))
             .clipShape(Capsule())
             .contentShape(Capsule())
+            .scaleEffect(hovered ? 1.04 : 1)
+            .animation(.easeOut(duration: 0.15), value: hovered)
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { _ in beginHold() }

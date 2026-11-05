@@ -30,6 +30,7 @@
 "Quick unlock" = "Déblocage rapide";
 "Pauses the break for %lld seconds" = "Suspend la pause %lld secondes";
 "Skip the break" = "Passer la pause";
+"Hold for 1 second" = "Maintenir 1 seconde";
 "Hold for %lld seconds" = "Maintenir %lld secondes";
 "Stand up, drink some water, look into the distance." = "Lève-toi, bois de l’eau, regarde au loin.";
 "Stretch your shoulders and back." = "Étire tes épaules et ton dos.";

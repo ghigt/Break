@@ -59,6 +59,8 @@ final class BreakOverlayController {
         windows.forEach { $0.orderOut(nil) }
         windows = []
         NSApp.presentationOptions = []
+        hint.hovered = nil
+        hint.text = nil
         previousApp?.activate()
         previousApp = nil
     }
@@ -141,7 +143,7 @@ struct OverlayView: View {
             case .onBreak(let startedAt, let endsAt):
                 BreakInProgressView(startedAt: startedAt, endsAt: endsAt, tip: tip, hold: hold, hint: hint)
             default:
-                BreakFinishedView()
+                BreakFinishedView(hint: hint)
             }
         }
         .ignoresSafeArea()
@@ -155,6 +157,13 @@ private struct BreakInProgressView: View {
     var tip: String
     let hold: HoldProgress
     let hint: HoverHint
+
+    private var holdHint: String {
+        let seconds = Int(HoldToConfirmButton.defaultDuration)
+        return seconds == 1
+            ? String(localized: "Hold for 1 second")
+            : String(localized: "Hold for \(seconds) seconds")
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -181,28 +190,32 @@ private struct BreakInProgressView: View {
                 .padding(.bottom, 40)
 
             HStack(spacing: 12) {
+                let unlockHovered = hint.isHovered("unlock")
                 Button {
                     BreakController.shared.peek()
                 } label: {
                     Label("Quick unlock", systemImage: "lock.open.fill")
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(Color(red: 0.45, green: 0.92, blue: 0.68))
+                        .foregroundStyle(unlockHovered ? Color(red: 0.78, green: 0.88, blue: 1.0) : Color(red: 0.55, green: 0.75, blue: 1.0))
                         .padding(.horizontal, 18)
                         .padding(.vertical, 9)
-                        .background(Capsule().fill(Color.green.opacity(0.16)))
-                        .overlay(Capsule().stroke(Color.green.opacity(0.45), lineWidth: 1))
+                        .background(Capsule().fill(Color.blue.opacity(unlockHovered ? 0.32 : 0.18)))
+                        .overlay(Capsule().stroke(Color(red: 0.45, green: 0.65, blue: 1.0).opacity(unlockHovered ? 0.85 : 0.45), lineWidth: 1))
+                        .shadow(color: Color.blue.opacity(unlockHovered ? 0.45 : 0), radius: 10)
                         .contentShape(Capsule())
+                        .scaleEffect(unlockHovered ? 1.04 : 1)
+                        .animation(.easeOut(duration: 0.15), value: unlockHovered)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PressableButtonStyle())
                 .onHover { hovering in
-                    showHint(hovering, String(localized: "Pauses the break for \(Preferences.peekSeconds) seconds"))
+                    hint.update("unlock", hovering: hovering, text: String(localized: "Pauses the break for \(Preferences.peekSeconds) seconds"))
                 }
 
-                HoldToConfirmButton(title: String(localized: "Skip the break"), hold: hold) {
+                HoldToConfirmButton(title: String(localized: "Skip the break"), hold: hold, hovered: hint.isHovered("skip")) {
                     BreakController.shared.skipBreak()
                 }
                 .onHover { hovering in
-                    showHint(hovering, String(localized: "Hold for \(Int(HoldToConfirmButton.defaultDuration)) seconds"))
+                    hint.update("skip", hovering: hovering, text: holdHint)
                 }
             }
 
@@ -213,18 +226,13 @@ private struct BreakInProgressView: View {
         }
         .foregroundStyle(.white)
     }
-
-    private func showHint(_ hovering: Bool, _ text: String) {
-        if hovering {
-            hint.text = text
-        } else if hint.text == text {
-            hint.text = nil
-        }
-    }
 }
 
 private struct BreakFinishedView: View {
+    let hint: HoverHint
+
     var body: some View {
+        let resumeHovered = hint.isHovered("resume")
         VStack(spacing: 0) {
             Image(systemName: "checkmark")
                 .font(.system(size: 40, weight: .semibold))
@@ -249,9 +257,14 @@ private struct BreakFinishedView: View {
                     .foregroundStyle(Color(red: 0.02, green: 0.25, blue: 0.12))
                     .padding(.horizontal, 36)
                     .padding(.vertical, 12)
-                    .background(Capsule().fill(Color(red: 0.24, green: 0.81, blue: 0.56)))
+                    .background(Capsule().fill(resumeHovered ? Color(red: 0.33, green: 0.89, blue: 0.64) : Color(red: 0.24, green: 0.81, blue: 0.56)))
+                    .shadow(color: Color(red: 0.24, green: 0.81, blue: 0.56).opacity(resumeHovered ? 0.5 : 0), radius: 14)
+                    .contentShape(Capsule())
+                    .scaleEffect(resumeHovered ? 1.04 : 1)
+                    .animation(.easeOut(duration: 0.15), value: resumeHovered)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(PressableButtonStyle())
+            .onHover { hint.update("resume", hovering: $0) }
             .keyboardShortcut(.defaultAction)
         }
         .foregroundStyle(.white)
