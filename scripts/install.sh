@@ -17,7 +17,15 @@ else
 fi
 
 mkdir -p "$DEST"
-pkill -x Break 2>/dev/null || true
+# Quit a running copy and wait until it is gone: opening the app while the old
+# instance is still terminating makes LaunchServices fail with error -600.
+if pkill -x Break 2>/dev/null; then
+  for _ in $(seq 50); do
+    pgrep -x Break >/dev/null || break
+    sleep 0.1
+  done
+  pkill -9 -x Break 2>/dev/null || true
+fi
 rm -rf "$DEST/Break.app"
 cp -R "$SRC" "$DEST/"
 
@@ -25,5 +33,7 @@ cp -R "$SRC" "$DEST/"
 # so lift the quarantine to let it open (allowed on the user's own files).
 xattr -dr com.apple.quarantine "$DEST/Break.app" 2>/dev/null || true
 
+# Register the fresh copy with LaunchServices before opening it.
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$DEST/Break.app" 2>/dev/null || true
 open "$DEST/Break.app"
 echo "✓ Break is installed in $DEST and running in the menu bar."
